@@ -1,84 +1,85 @@
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+// script.js
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const rocketImg = new Image();
+rocketImg.src = "rocket.png"; // make sure this matches your uploaded image file name
 
 let rocket = {
-  x: 180,
-  y: 500,
-  width: 40,
-  height: 60,
-  vy: 0,
-  gravity: 0.4,
-  jumpStrength: -10
+  x: canvas.width / 2 - 25,
+  y: canvas.height - 100,
+  width: 50,
+  height: 50,
+  velocityY: 0,
+  gravity: 0.5,
+  jumpPower: -12
 };
 
-let platforms = [];
-const numPlatforms = 8;
-for (let i = 0; i < numPlatforms; i++) {
-  platforms.push({
-    x: Math.random() * 360,
-    y: i * 75,
-    width: 60,
-    height: 10
-  });
-}
+let score = 0;
+let gameOver = false;
 
 function drawRocket() {
-  ctx.fillStyle = '#ff4d4d';
-  ctx.fillRect(rocket.x, rocket.y, rocket.width, rocket.height);
+  ctx.drawImage(rocketImg, rocket.x, rocket.y, rocket.width, rocket.height);
 }
 
-function drawPlatforms() {
-  ctx.fillStyle = '#fff';
-  platforms.forEach(p => {
-    ctx.fillRect(p.x, p.y, p.width, p.height);
-  });
+function drawScore() {
+  document.getElementById("score").textContent = `Score: ${Math.floor(score)}`;
 }
 
-function update() {
-  rocket.vy += rocket.gravity;
-  rocket.y += rocket.vy;
+function updateRocket() {
+  rocket.velocityY += rocket.gravity;
+  rocket.y += rocket.velocityY;
+
+  if (rocket.y < canvas.height / 2) {
+    score += (canvas.height / 2 - rocket.y) * 0.01;
+    rocket.y = canvas.height / 2;
+  }
 
   if (rocket.y > canvas.height) {
-    rocket.y = 500;
-    rocket.vy = 0;
-    alert('Game Over!');
-  }
-
-  platforms.forEach(p => {
-    if (
-      rocket.x < p.x + p.width &&
-      rocket.x + rocket.width > p.x &&
-      rocket.y + rocket.height < p.y + p.height &&
-      rocket.y + rocket.height > p.y &&
-      rocket.vy > 0
-    ) {
-      rocket.vy = rocket.jumpStrength;
-    }
-  });
-
-  if (rocket.y < 300) {
-    rocket.y = 300;
-    platforms.forEach(p => {
-      p.y -= rocket.vy;
-      if (p.y > canvas.height) {
-        p.y = 0;
-        p.x = Math.random() * 340;
-      }
-    });
+    endGame();
   }
 }
 
-function loop() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+function endGame() {
+  gameOver = true;
+  document.getElementById("gameOverScreen").style.display = "block";
+}
+
+function restartGame() {
+  rocket.y = canvas.height - 100;
+  rocket.velocityY = 0;
+  score = 0;
+  gameOver = false;
+  document.getElementById("gameOverScreen").style.display = "none";
+  animate();
+}
+
+function clear() {
+  let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  gradient.addColorStop(0, "#87ceeb");
+  gradient.addColorStop(0.5, "#4682b4");
+  gradient.addColorStop(1, "#1a1a2e");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function animate() {
+  if (gameOver) return;
+  clear();
+  updateRocket();
   drawRocket();
-  drawPlatforms();
-  update();
-  requestAnimationFrame(loop);
+  drawScore();
+  requestAnimationFrame(animate);
 }
 
-document.addEventListener('keydown', e => {
-  if (e.key === 'ArrowLeft') rocket.x -= 20;
-  if (e.key === 'ArrowRight') rocket.x += 20;
+window.addEventListener("keydown", (e) => {
+  if (e.code === "Space" || e.code === "ArrowUp") {
+    rocket.velocityY = rocket.jumpPower;
+  }
 });
 
-loop();
+rocketImg.onload = () => {
+  animate();
+};
