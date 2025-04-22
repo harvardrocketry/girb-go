@@ -165,3 +165,11 @@ export default function App() {
     </div>
   );
 }
+useEffect(() => {
+  imgRef.current = new Image();
+  imgRef.current.src = girbSprite;
+  imgRef.current.onload = () => {
+    console.log("Girb image loaded!");
+  };
+}, []);
+
