@@ -3,53 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GIRB-Go</title>
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      font-family: monospace;
-    }
-    canvas {
-      display: block;
-      background: linear-gradient(#87ceeb, #1a1a2e);
-    }
-    #score {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      color: white;
-      font-size: 20px;
-      z-index: 10;
-    }
-    #gameOverScreen {
-      display: none;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(0, 0, 0, 0.7);
-      color: white;
-      padding: 20px;
-      border-radius: 10px;
-      text-align: center;
-      z-index: 20;
-    }
-    #gameOverScreen button {
-      padding: 10px 20px;
-      font-size: 16px;
-      margin-top: 10px;
-    }
-  </style>
+  <title>Flight of Girb</title>
 </head>
 <body>
-  <div id="score">Score: 0</div>
-  <div id="gameOverScreen">
-    <h1>Game Over</h1>
-    <p>Your rocket lost orbit :(</p>
-    <button onclick="restartGame()">↻ Try Again</button>
-  </div>
-  <canvas id="gameCanvas"></canvas>
-  <script src="script.js"></script>
+  <div id="root"></div>
 </body>
 </html>
