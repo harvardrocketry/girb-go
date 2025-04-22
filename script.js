@@ -20,6 +20,12 @@ let rocket = {
 let clouds = [];
 let cloudImg = new Image();
 cloudImg.src = "cloud.png";
+cloudImg.onload = () => {
+  console.log("Cloud image loaded!");
+};
+cloudImg.onerror = () => {
+  console.error("Cloud image failed to load!");
+};
 
 let score = 0;
 let gameOver = false;
