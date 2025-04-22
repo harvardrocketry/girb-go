@@ -6,6 +6,9 @@ canvas.height = window.innerHeight;
 const rocketImg = new Image();
 rocketImg.src = "rocket.png";
 
+const cloudImg = new Image();
+cloudImg.src = "cloud.png"; // Ensure this file is in the same folder
+
 let rocket = {
   x: canvas.width / 2 - 50,
   y: canvas.height - 100,
@@ -18,23 +21,27 @@ let rocket = {
 };
 
 let clouds = [];
-let cloudImg = new Image();
-cloudImg.src = "cloud.png";
+let score = 0;
+let gameOver = false;
+
+// Load cloud image
 cloudImg.onload = () => {
   console.log("Cloud image loaded!");
+  // Initial cloud spawn
+  for (let i = 0; i < 5; i++) {
+    spawnCloud();
+  }
 };
+
 cloudImg.onerror = () => {
   console.error("Cloud image failed to load!");
 };
-
-let score = 0;
-let gameOver = false;
 
 function spawnCloud() {
   const size = 60 + Math.random() * 40;
   clouds.push({
     x: Math.random() * (canvas.width - size),
-    y: rocket.y - canvas.height - Math.random() * 500,
+    y: Math.random() * canvas.height / 2, // Clouds start in the upper half
     width: size,
     height: size,
   });
@@ -42,10 +49,10 @@ function spawnCloud() {
 
 function updateClouds() {
   for (let cloud of clouds) {
-    cloud.y += rocket.gravity * rocket.velocityY * -0.05;
+    cloud.y += 1; // Move clouds down slowly
     ctx.drawImage(cloudImg, cloud.x, cloud.y, cloud.width, cloud.height);
 
-    // Collision
+    // Collision check
     if (
       rocket.x < cloud.x + cloud.width &&
       rocket.x + rocket.width > cloud.x &&
@@ -57,7 +64,7 @@ function updateClouds() {
   }
 
   // Remove off-screen clouds
-  clouds = clouds.filter(cloud => cloud.y < rocket.y + canvas.height);
+  clouds = clouds.filter(cloud => cloud.y < canvas.height);
 }
 
 function drawRocket() {
@@ -119,7 +126,7 @@ function restartGame() {
   score = 0;
   clouds = [];
   document.getElementById("gameOverScreen").style.display = "none";
-  for (let i = 0; i < 10; i++) spawnCloud();
+  for (let i = 0; i < 5; i++) spawnCloud();
   animate();
 }
 
@@ -131,6 +138,6 @@ window.addEventListener("keydown", (e) => {
 });
 
 rocketImg.onload = () => {
-  for (let i = 0; i < 10; i++) spawnCloud();
   animate();
 };
+
