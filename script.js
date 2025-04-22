@@ -121,11 +121,9 @@ function updateRocket() {
 
 // Function to clear and redraw the background
 function clear() {
-  // Create a gradient for the sky
+  // Sky gradient changes as the rocket goes up
+  let skyColorFactor = Math.min(1, rocket.y / canvas.height); // Ensures the sky darkens gradually
   let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-
-  // As the rocket moves up, the sky gets darker
-  let skyColorFactor = rocket.y / canvas.height;
   gradient.addColorStop(0, `rgb(135, 206, 235)`); // Light blue
   gradient.addColorStop(0.5, `rgb(160, 196, 255)`); // Lighter blue
   gradient.addColorStop(skyColorFactor, `rgb(${Math.max(0, 40)}, ${Math.max(0, 50)}, 75)`); // Darker as the rocket goes up
