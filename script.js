@@ -19,7 +19,7 @@ let rocket = {
 
 let clouds = [];
 let cloudImg = new Image();
-cloudImg.src = "https://i.imgur.com/yf4Z3NU.png"; // you can upload your own too!
+cloudImg.src = "cloud.png";
 
 let score = 0;
 let gameOver = false;
