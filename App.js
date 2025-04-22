@@ -1,6 +1,6 @@
 // Main game logic for Flight of Girb
 import { useEffect, useRef, useState } from "react";
-import girbSprite from "./assets/girb.png";
+import girbSprite from "./girb.png";
 
 const GRAVITY = 0.4;
 const FLAP_STRENGTH = -8;
