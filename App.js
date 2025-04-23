@@ -1,175 +1,221 @@
-// Main game logic for Flight of Girb
-import { useEffect, useRef, useState } from "react";
-import girbSprite from "./girb.png";
+import pygame, random, time
+from pygame.locals import *
 
-const GRAVITY = 0.4;
-const FLAP_STRENGTH = -8;
-const OBSTACLE_GAP = 180;
-const OBSTACLE_WIDTH = 60;
-const OBSTACLE_INTERVAL = 1800; // ms
-const SPEED = 3;
+#VARIABLES
+SCREEN_WIDHT = 400
+SCREEN_HEIGHT = 600
+SPEED = 20
+GRAVITY = 2.5
+GAME_SPEED = 15
 
-export default function App() {
-  const canvasRef = useRef(null);
-  const [gameState, setGameState] = useState("loading");
-  const [score, setScore] = useState(0);
+GROUND_WIDHT = 2 * SCREEN_WIDHT
+GROUND_HEIGHT= 100
 
-  const girb = useRef({ x: 80, y: 200, vy: 0 });
-  const obstacles = useRef([]);
-  const imgRef = useRef(null);
-  const animationId = useRef(null);
+PIPE_WIDHT = 80
+PIPE_HEIGHT = 500
 
-  // Load Girb sprite
-  useEffect(() => {
-    imgRef.current = new Image();
-    imgRef.current.src = girbSprite;
-    imgRef.current.onload = () => {
-      setGameState("start");
-    };
-  }, []);
+PIPE_GAP = 150
 
-  // Set up event listeners
-  useEffect(() => {
-    function flap() {
-      if (gameState === "start") {
-        setGameState("playing");
-        girb.current.vy = FLAP_STRENGTH;
-      } else if (gameState === "playing") {
-        girb.current.vy = FLAP_STRENGTH;
-      } else if (gameState === "gameover") {
-        resetGame();
-      }
-    }
+wing = 'assets/audio/wing.wav'
+hit = 'assets/audio/hit.wav'
 
-    function handleKeyDown(e) {
-      if (e.code === "Space") {
-        flap();
-      }
-    }
+pygame.mixer.init()
 
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("mousedown", flap);
 
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("mousedown", flap);
-    };
-  }, [gameState]);
+class Bird(pygame.sprite.Sprite):
 
-  // Game loop
-  useEffect(() => {
-    if (gameState === "loading") return;
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
 
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    let lastObstacleTime = 0;
+        self.images =  [pygame.image.load('assets/sprites/bluebird-upflap.png').convert_alpha(),
+                        pygame.image.load('assets/sprites/bluebird-midflap.png').convert_alpha(),
+                        pygame.image.load('assets/sprites/bluebird-downflap.png').convert_alpha()]
 
-    function loop(timestamp) {
-      if (!lastObstacleTime) lastObstacleTime = timestamp;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+        self.speed = SPEED
 
-      // Draw sky background
-      ctx.fillStyle = "#87CEEB";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+        self.current_image = 0
+        self.image = pygame.image.load('assets/sprites/bluebird-upflap.png').convert_alpha()
+        self.mask = pygame.mask.from_surface(self.image)
 
-      if (gameState === "playing") {
-        // Girb physics
-        girb.current.vy += GRAVITY;
-        girb.current.y += girb.current.vy;
+        self.rect = self.image.get_rect()
+        self.rect[0] = SCREEN_WIDHT / 6
+        self.rect[1] = SCREEN_HEIGHT / 2
 
-        // Add obstacles
-        if (timestamp - lastObstacleTime > OBSTACLE_INTERVAL) {
-          const gapTop = Math.random() * (canvas.height - OBSTACLE_GAP - 100) + 50;
-          obstacles.current.push({ x: canvas.width, top: gapTop, passed: false });
-          lastObstacleTime = timestamp;
-        }
+    def update(self):
+        self.current_image = (self.current_image + 1) % 3
+        self.image = self.images[self.current_image]
+        self.speed += GRAVITY
 
-        // Update and draw obstacles
-        obstacles.current = obstacles.current.filter((ob) => ob.x + OBSTACLE_WIDTH > 0);
-        for (let ob of obstacles.current) {
-          ob.x -= SPEED;
-          ctx.fillStyle = "#444";
-          ctx.fillRect(ob.x, 0, OBSTACLE_WIDTH, ob.top);
-          ctx.fillRect(ob.x, ob.top + OBSTACLE_GAP, OBSTACLE_WIDTH, canvas.height);
+        #UPDATE HEIGHT
+        self.rect[1] += self.speed
 
-          // Scoring
-          if (!ob.passed && ob.x + OBSTACLE_WIDTH < girb.current.x) {
-            ob.passed = true;
-            setScore((s) => s + 1);
-          }
+    def bump(self):
+        self.speed = -SPEED
 
-          // Collision detection
-          if (
-            girb.current.x < ob.x + OBSTACLE_WIDTH &&
-            girb.current.x + 40 > ob.x &&
-            (girb.current.y < ob.top || girb.current.y + 40 > ob.top + OBSTACLE_GAP)
-          ) {
-            setGameState("gameover");
-          }
-        }
+    def begin(self):
+        self.current_image = (self.current_image + 1) % 3
+        self.image = self.images[self.current_image]
 
-        // Check bounds
-        if (girb.current.y < 0 || girb.current.y + 40 > canvas.height) {
-          setGameState("gameover");
-        }
-      }
 
-      // Draw Girb
-      ctx.drawImage(imgRef.current, girb.current.x, girb.current.y, 40, 40);
 
-      // Draw rocket flames
-      ctx.fillStyle = "orange";
-      ctx.beginPath();
-      ctx.moveTo(girb.current.x, girb.current.y + 20);
-      ctx.lineTo(girb.current.x - 10, girb.current.y + 10);
-      ctx.lineTo(girb.current.x - 10, girb.current.y + 30);
-      ctx.fill();
 
-      // Draw score
-      ctx.fillStyle = "#000";
-      ctx.font = "24px sans-serif";
-      ctx.fillText(`Score: ${score}`, 10, 30);
+class Pipe(pygame.sprite.Sprite):
 
-      // Draw UI text
-      if (gameState === "start") {
-        ctx.fillText("Click or press space to start", 60, canvas.height / 2);
-      }
-      if (gameState === "gameover") {
-        ctx.fillText("Game Over - Click or press space to restart", 20, canvas.height / 2);
-      }
+    def __init__(self, inverted, xpos, ysize):
+        pygame.sprite.Sprite.__init__(self)
 
-      animationId.current = requestAnimationFrame(loop);
-    }
+        self. image = pygame.image.load('assets/sprites/pipe-green.png').convert_alpha()
+        self.image = pygame.transform.scale(self.image, (PIPE_WIDHT, PIPE_HEIGHT))
 
-    animationId.current = requestAnimationFrame(loop);
 
-    return () => cancelAnimationFrame(animationId.current);
-  }, [gameState]);
+        self.rect = self.image.get_rect()
+        self.rect[0] = xpos
 
-  // Reset game
-  function resetGame() {
-    setScore(0);
-    girb.current = { x: 80, y: 200, vy: 0 };
-    obstacles.current = [];
-    setGameState("start");
-  }
+        if inverted:
+            self.image = pygame.transform.flip(self.image, False, True)
+            self.rect[1] = - (self.rect[3] - ysize)
+        else:
+            self.rect[1] = SCREEN_HEIGHT - ysize
 
-  return (
-    <div className="flex justify-center items-center h-screen bg-black">
-      <canvas
-        ref={canvasRef}
-        width={480}
-        height={640}
-        className="border-4 border-white rounded-xl shadow-xl"
-      />
-    </div>
-  );
-}
-useEffect(() => {
-  imgRef.current = new Image();
-  imgRef.current.src = girbSprite;
-  imgRef.current.onload = () => {
-    console.log("Girb image loaded!");
-  };
-}, []);
 
+        self.mask = pygame.mask.from_surface(self.image)
+
+
+    def update(self):
+        self.rect[0] -= GAME_SPEED
+
+        
+
+class Ground(pygame.sprite.Sprite):
+    
+    def __init__(self, xpos):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.image.load('assets/sprites/base.png').convert_alpha()
+        self.image = pygame.transform.scale(self.image, (GROUND_WIDHT, GROUND_HEIGHT))
+
+        self.mask = pygame.mask.from_surface(self.image)
+
+        self.rect = self.image.get_rect()
+        self.rect[0] = xpos
+        self.rect[1] = SCREEN_HEIGHT - GROUND_HEIGHT
+    def update(self):
+        self.rect[0] -= GAME_SPEED
+
+def is_off_screen(sprite):
+    return sprite.rect[0] < -(sprite.rect[2])
+
+def get_random_pipes(xpos):
+    size = random.randint(100, 300)
+    pipe = Pipe(False, xpos, size)
+    pipe_inverted = Pipe(True, xpos, SCREEN_HEIGHT - size - PIPE_GAP)
+    return pipe, pipe_inverted
+
+
+pygame.init()
+screen = pygame.display.set_mode((SCREEN_WIDHT, SCREEN_HEIGHT))
+pygame.display.set_caption('Flappy Bird')
+
+BACKGROUND = pygame.image.load('assets/sprites/background-day.png')
+BACKGROUND = pygame.transform.scale(BACKGROUND, (SCREEN_WIDHT, SCREEN_HEIGHT))
+BEGIN_IMAGE = pygame.image.load('assets/sprites/message.png').convert_alpha()
+
+bird_group = pygame.sprite.Group()
+bird = Bird()
+bird_group.add(bird)
+
+ground_group = pygame.sprite.Group()
+
+for i in range (2):
+    ground = Ground(GROUND_WIDHT * i)
+    ground_group.add(ground)
+
+pipe_group = pygame.sprite.Group()
+for i in range (2):
+    pipes = get_random_pipes(SCREEN_WIDHT * i + 800)
+    pipe_group.add(pipes[0])
+    pipe_group.add(pipes[1])
+
+
+
+clock = pygame.time.Clock()
+
+begin = True
+
+while begin:
+
+    clock.tick(15)
+
+    for event in pygame.event.get():
+        if event.type == QUIT:
+            pygame.quit()
+        if event.type == KEYDOWN:
+            if event.key == K_SPACE or event.key == K_UP:
+                bird.bump()
+                pygame.mixer.music.load(wing)
+                pygame.mixer.music.play()
+                begin = False
+
+    screen.blit(BACKGROUND, (0, 0))
+    screen.blit(BEGIN_IMAGE, (120, 150))
+
+    if is_off_screen(ground_group.sprites()[0]):
+        ground_group.remove(ground_group.sprites()[0])
+
+        new_ground = Ground(GROUND_WIDHT - 20)
+        ground_group.add(new_ground)
+
+    bird.begin()
+    ground_group.update()
+
+    bird_group.draw(screen)
+    ground_group.draw(screen)
+
+    pygame.display.update()
+
+
+while True:
+
+    clock.tick(15)
+
+    for event in pygame.event.get():
+        if event.type == QUIT:
+            pygame.quit()
+        if event.type == KEYDOWN:
+            if event.key == K_SPACE or event.key == K_UP:
+                bird.bump()
+                pygame.mixer.music.load(wing)
+                pygame.mixer.music.play()
+
+    screen.blit(BACKGROUND, (0, 0))
+
+    if is_off_screen(ground_group.sprites()[0]):
+        ground_group.remove(ground_group.sprites()[0])
+
+        new_ground = Ground(GROUND_WIDHT - 20)
+        ground_group.add(new_ground)
+
+    if is_off_screen(pipe_group.sprites()[0]):
+        pipe_group.remove(pipe_group.sprites()[0])
+        pipe_group.remove(pipe_group.sprites()[0])
+
+        pipes = get_random_pipes(SCREEN_WIDHT * 2)
+
+        pipe_group.add(pipes[0])
+        pipe_group.add(pipes[1])
+
+    bird_group.update()
+    ground_group.update()
+    pipe_group.update()
+
+    bird_group.draw(screen)
+    pipe_group.draw(screen)
+    ground_group.draw(screen)
+
+    pygame.display.update()
+
+    if (pygame.sprite.groupcollide(bird_group, ground_group, False, False, pygame.sprite.collide_mask) or
+            pygame.sprite.groupcollide(bird_group, pipe_group, False, False, pygame.sprite.collide_mask)):
+        pygame.mixer.music.load(hit)
+        pygame.mixer.music.play()
+        time.sleep(1)
+        break
